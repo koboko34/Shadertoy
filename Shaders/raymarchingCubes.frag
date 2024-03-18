@@ -34,10 +34,10 @@ float smin( float a, float b, float k )
 
 float map(vec3 p)
 {
-    vec3 spherePos = vec3(sin(iTime) * 3., 0., 0.); // sphere position
-    float sphere = sdSphere(p - spherePos, 0.); // sphere SDF, translated (translated by negative spherePos because we are essentially moving the ray origin to the left)
+    // vec3 spherePos = vec3(sin(iTime) * 3., 0., 0.); // sphere position
+    // float sphere = sdSphere(p - spherePos, 0.); // sphere SDF, translated (translated by negative spherePos because we are essentially moving the ray origin to the left)
     
-    vec3 q = p;
+    vec3 q = p; // position to be used by each instance of the shape
     
     q.y -= iTime * 0.6;
     
@@ -45,13 +45,14 @@ float map(vec3 p)
     q.xy *= rot2D(iTime); // uses 2x2 matrix but can stack concat multiple rotations
     q.xz *= rot2D(iTime); // swizzle vec3 to exclude the axis of rotation
     
+    float negativeSphere = sdSphere(q, 0.16);  // sphere to be subtracted from the cube
     float box = sdBox(q * 4., vec3(0.5)) / 4.; // just as before, scaling is applied inversely.
-                                                // the resulting float is scaled by inverse to
-                                                // maintain correct SDF
+                                               // the resulting float is scaled by inverse to
+                                               // maintain correct SDF
     
     float ground = p.y + .75; // ground plane
     
-    return smin(ground, smin(sphere, box, 0.5), 0.9); // objects are combined using min()
+    return smin(ground, max(-negativeSphere, box), 0.9); // objects are combined using min(d1, d2), subtracted using max(-d1, d2)
 }
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
@@ -66,6 +67,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     
     float t = 0.; // total distance travelled
     
+    /*
     // mouse control (vertical)
     ro.yz *= rot2D(-m.y);
     rd.yz *= rot2D(-m.y);
@@ -73,6 +75,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     // mouse control (horizontal)
     ro.xz *= rot2D(-m.x);
     rd.xz *= rot2D(-m.x);
+    */
     
     // raymarching
     int i;
